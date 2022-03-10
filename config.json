@@ -1,0 +1,8 @@
+{
+	"clientId": "BOT-ID-HERE",
+	"guildId": "GUILD-ID-HERE",
+	"token": "BOT-TOKEN-HERE",
+	"username":"DATABASE-USERNAME-HERE",
+	"password":"DATABASE-PASSWORD-HERE",
+	"database":"DATABASE-HERE"
+}
