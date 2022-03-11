@@ -30,13 +30,13 @@ module.exports = {
 
         pool.query('SELECT currency.id, currency.balance, daily.lastCheck FROM `currency` JOIN daily ON currency.id = daily.id WHERE currency.id = ?', interaction.user.id, function(error, results, fields){
             if(results[0].lastCheck == d.getDate()){
-                interaction.reply("You've already had your daily cash. Don't be greedy.");
+                interaction.reply("O- Mate, we've already hidden your bucks for today.");
                 return;
             }
             balance = results[0].balance + 100;
             pool.query('UPDATE `currency` SET `balance` = ? WHERE id = ?', [balance, interaction.user.id], function(error, users, fields){
                 pool.query('UPDATE `daily` SET lastCheck = ? where id = ?', [d.getDate(), interaction.user.id]);
-                interaction.reply("Your daily balance has been updated. Enjoy!");
+                interaction.reply("O- mate, we've stashed 100 bucks for ya.");
             });
         });
 	},
