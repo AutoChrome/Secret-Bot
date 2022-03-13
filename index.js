@@ -5,11 +5,9 @@ const { token, clientId, guildId, username, password, database } = require('./co
 var mysql = require('mysql');
 const { REST } = require('@discordjs/rest');
 const rest = new REST({ version: '10' }).setToken(token);
-
 const client = new Client({intents: [Intents.FLAGS.GUILDS]});
 client.commands = new Collection();
 const commands = [];
-
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 for(const file of commandFiles) {
     const commandName = file.split(".")[0];
@@ -29,17 +27,26 @@ client.once('ready', () => {
 });
 
 client.on('interactionCreate', async interaction => {
-    if(!interaction.isCommand()) return;
+    if(!interaction.isCommand()){
+        if(!interaction.isButton()) return;
+        if(interaction.customId == "hit") {
+            var game = require('./commands/blackjack.js');
+            game.hit(interaction);
+        }else if(interaction.customId == "stand") {
+            var game = require('./commands/blackjack.js');
+            game.stand(interaction);
+        }
+    }else {
+        const command = client.commands.get(interaction.commandName);
 
-    const command = client.commands.get(interaction.commandName);
-
-    if(!command) return;
-
-    try {
-        await command.execute(interaction);
-    }catch(error) {
-        console.error(error);
-        await interaction.reply({content: 'There was an error while executing this command!', ephemeral: true});
+        if(!command) return;
+    
+        try {
+            await command.execute(interaction);
+        }catch(error) {
+            console.error(error);
+            await interaction.reply({content: 'There was an error while executing this command!', ephemeral: true});
+        }
     }
 });
 

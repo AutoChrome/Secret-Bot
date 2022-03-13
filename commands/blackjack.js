@@ -1,28 +1,127 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
+const { MessageActionRow, MessageButton, MessageEmbed, Client, Intents } = require('discord.js');
+
+var gameState = new Array();
 
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('blackjack')
 		.setDescription('Test command'),
 	async execute(interaction) {
-        
+        for(var i = 0; i < gameState.length; i++) {
+            if(gameState[i].playerId == interaction.user.id){
+                gameState.splice(i, 1);
+            }
+        }
 		game = new Game(interaction.user.id);
+        
+        const embed = new MessageEmbed().setColor("#0099ff").setTitle('Blackjack').setDescription(interaction.user.username + ": " + game.printPlayerPublicHand() + "\n" + "House: " + game.printHousePublicHand());
+        const playerEmbed = new MessageEmbed().setColor("#0099ff").setTitle('Your hand').setDescription(game.printPlayerHand());
+        const row = new MessageActionRow().addComponents(
+            new MessageButton().setCustomId("hit").setLabel("Hit").setStyle("PRIMARY"),
+            new MessageButton().setCustomId("stand").setLabel("Stand").setStyle("DANGER"),
+        );
+        game.saveGame();
+        await interaction.reply({ embeds:[embed], ephemeral: true });
+        await interaction.followUp({ embeds:[playerEmbed], components: [row], ephemeral: true });
 	},
 };
+
+module.exports.hit = hit;
+module.exports.stand = stand;
+
+async function stand(interaction) {
+    for(var i = 0; i < gameState.length; i++) {
+        if(gameState[i].playerId == interaction.user.id) {
+            var game = gameState[i];
+            game.houseTurn();
+            if(calculateWeight(game.getHouseHand()) > 21) {
+                const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' won! House went bust.').setDescription(interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
+                interaction.reply({ embeds:[ embed ] });
+                gameState.splice(i, 1);
+                return;
+            }
+            if(calculateWeight(game.getPlayerHand()) > calculateWeight(game.getHouseHand())) {
+                const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' won! You had more points than house.').setDescription(interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
+                interaction.reply({ embeds:[ embed ] });
+                gameState.splice(i, 1);
+                return;
+            }
+            if(calculateWeight(game.getPlayerHand()) == calculateWeight(game.getHouseHand)) {
+                const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' drew?').setDescription(interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
+                interaction.reply({ embeds:[ embed ] });
+                gameState.splice(i, 1);
+                return;
+            }
+            const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' lost... The house had more points.').setDescription(interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
+            interaction.reply({ embeds:[ embed ] });
+            gameState.splice(i, 1);
+        }
+    }
+}
+
+async function hit(interaction) {
+    for(var i = 0; i < gameState.length; i++) {
+        if(gameState[i].playerId == interaction.user.id) {
+            var game = gameState[i];
+            game.playerHit();
+            var playerWeight = calculateWeight(game.getPlayerHand());
+            if(playerWeight <= 20) {
+                const embed = new MessageEmbed().setColor("#0099ff").setTitle('Blackjack').setDescription(interaction.user.username + ": " + game.printPlayerPublicHand() + "\n" + "House: " + game.printHousePublicHand());
+                const playerEmbed = new MessageEmbed().setColor("#0099ff").setTitle('Your hand').setDescription(game.printPlayerHand());
+                const row = new MessageActionRow().addComponents(
+                    new MessageButton().setCustomId("hit").setLabel("Hit").setStyle("PRIMARY"),
+                    new MessageButton().setCustomId("stand").setLabel("Stand").setStyle("DANGER"),
+                );
+                await interaction.reply({ embeds:[embed], ephemeral: true });
+                await interaction.followUp({ embeds:[playerEmbed], components: [row], ephemeral: true });
+            }else if(playerWeight == 21){
+                const embed = new MessageEmbed().setColor("#0099ff").setTitle('Blackjack').setDescription(interaction.user.username + ": " + game.printPlayerPublicHand() + "\n" + "House: " + game.printHousePublicHand());
+                const playerEmbed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + '... Won?! I think they cheated.').setDescription("You just got super lucky with that 21. \nYou had: " + game.printPlayerHand() + "\nHouse had: " + game.printHouseHand());
+                gameState.splice(i, 1);
+                await interaction.reply({ embeds:[embed], ephemeral: true });
+                await interaction.followUp({ embeds:[playerEmbed], ephemeral: false });
+            }else {
+                const embed = new MessageEmbed().setColor("#0099ff").setTitle('Blackjack').setDescription(interaction.user.username + ": " + game.printPlayerPublicHand() + "\n" + "House: " + game.printHousePublicHand());
+                const playerEmbed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' lost. What a loser.').setDescription("You went bust... Imagine being that bad. \nYou had: " + game.printPlayerHand() + "\nHouse had: " + game.printHouseHand());
+                gameState.splice(i, 1);
+                await interaction.reply({ embeds:[embed], ephemeral: true });
+                await interaction.followUp({ embeds:[playerEmbed], ephemeral: false });
+            }
+        }
+    }
+}
+
+function calculateWeight(hand) {
+    var weight = 0;
+    for(var j = 0; j < hand.length; j++) {
+        weight += hand[j].weight;
+    }
+
+    for(var j = 0; j < hand.length; j++) {
+        if(hand[j].value == "Ace"){
+            if(weight > 21) {
+                weight -= 10;
+            }
+        }
+    }
+
+    return weight;
+}
 
 class Deck {
     constructor() {
         var suits = ["Spades", "Hearts", "Diamonds", "Clubs"];
-        var values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+        var values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King", "Ace"];
         this.cards = new Array();
         for (var i = 0 ; i < values.length; i++)
         {
             for(var x = 0; x < suits.length; x++)
             {
                 var weight = parseInt(values[i]);
-                if (values[i] == "J" || values[i] == "Q" || values[i] == "K")
+                if (values[i] == "Jack" || values[i] == "Queen" || values[i] == "King")
                     weight = 10;
-                if (values[i] == "A")
+                if (values[i] == "Ace")
                     weight = 11;
                 this.cards.push(new Card(suits[x], values[i], weight));
             }
@@ -34,12 +133,18 @@ class Deck {
     shuffle() {
         var m = this.cards.length, t, i;
 
-        while(m) {
+        var amount = 208;
+
+        while(amount) {
+            if(m == 0){
+                m = this.cards.length;
+            }
             i = Math.floor(Math.random() * m--);
 
             t = this.cards[m];
             this.cards[m] = this.cards[i];
             this.cards[i] = t;
+            amount--;
         }
     }
     
@@ -72,7 +177,77 @@ class Game {
             this.playerHand.push(this.deck.drawCard());
             this.houseHand.push(this.deck.drawCard());
         }
-        console.log(this.playerHand);
-        console.log(this.deck.length());
+    }
+
+    houseTurn() {
+        if(calculateWeight(this.houseHand) >= 17) return;
+        this.houseHand.push(this.deck.drawCard());
+        this.houseTurn();
+    }
+
+    playerHit(){
+        this.playerHand.push(this.deck.drawCard());
+    }
+
+    househit(){
+        this.houseHand.push(this.deck.drawCard());
+    }
+
+    printPlayerPublicHand(){
+        var hand = "";
+        for(var i = 0; i < this.playerHand.length; i++){
+            if(i == 0){
+                hand += this.playerHand[i].value + " of " + this.playerHand[i].suit + ", ";
+            }else {
+                hand += " HIDDEN,";
+            }
+        }
+        return hand.slice(0, -1);
+    }
+
+    printPlayerHand(){
+        var hand = "";
+        for(var i = 0; i < this.playerHand.length; i++){
+            hand += this.playerHand[i].value + " of " + this.playerHand[i].suit + ", ";
+        }
+        return hand.slice(0, -2);
+    }
+
+    printHousePublicHand(){
+        var hand = "";
+        for(var i = 0; i < this.houseHand.length; i++){
+            if(i == 0){
+                hand += this.houseHand[i].value + " of " + this.houseHand[i].suit + ", ";
+            }else {
+                hand += " HIDDEN";
+            }
+        }
+        return hand;
+    }
+
+    printHouseHand(){
+        var hand = "";
+        for(var i = 0; i < this.houseHand.length; i++){
+            hand += this.houseHand[i].value + " of " + this.houseHand[i].suit + ", ";
+        }
+        return hand.slice(0, -2);
+    }
+
+    getPlayerHand(){
+        return this.playerHand;
+    }
+
+    getHouseHand(){
+        return this.houseHand;
+    }
+
+    saveGame(playerId){
+        for(var i = 0; i < gameState.length; i++) {
+            if(gameState[i].playerId == playerId) {
+                gameState[i] = this;
+                return;
+            }
+        }
+        gameState.push(this);
     }
 }
