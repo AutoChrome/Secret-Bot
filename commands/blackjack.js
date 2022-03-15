@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
 const { username, password, database } = require('../config.json');
 var mysql = require('mysql');
+var rate = 1.05;
 
 var gameState = new Array();
 
@@ -93,27 +94,27 @@ async function stand(interaction) {
             var game = gameState[i];
             game.houseTurn();
             if(calculateWeight(game.getHouseHand()) > 21) {
-                const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' won! House went bust.').setDescription(interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
+                const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' won! House went bust.').setDescription("You won: " + (game.wager * rate) + " hidden bucks \n" + interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
                 interaction.reply({ embeds:[ embed ] });
                 gameState.splice(i, 1);
-                handlePayment(interaction.user.id, (game.wager * 1.05));
+                handlePayment(interaction.user.id, (game.wager * rate));
                 return;
             }
             if(calculateWeight(game.getPlayerHand()) > calculateWeight(game.getHouseHand())) {
-                const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' won! You had more points than house.').setDescription(interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
+                const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' won! You had more points than house.').setDescription("You won: " + (game.wager * rate) + " hidden bucks \n" + interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
                 interaction.reply({ embeds:[ embed ] });
                 gameState.splice(i, 1);
-                handlePayment(interaction.user.id, (game.wager * 1.05));
+                handlePayment(interaction.user.id, (game.wager * rate));
                 return;
             }
             if(calculateWeight(game.getPlayerHand()) == calculateWeight(game.getHouseHand())) {
-                const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' drew?').setDescription(interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
+                const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' drew?').setDescription("Your payment of " + game.wager + " hidden bucks has been refunded. \n" + interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
                 interaction.reply({ embeds:[ embed ] });
                 gameState.splice(i, 1);
                 handlePayment(interaction.user.id, game.wager);
                 return;
             }
-            const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' lost... The house had more points.').setDescription(interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
+            const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' lost... The house had more points.').setDescription("You lose: " + game.wager + " hidden bucks \n" + interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
             interaction.reply({ embeds:[ embed ] });
             gameState.splice(i, 1);
         }
@@ -139,7 +140,7 @@ async function hit(interaction) {
                 const embed = new MessageEmbed().setColor("#0099ff").setTitle('Blackjack').setDescription(interaction.user.username + ": " + game.printPlayerPublicHand() + "\n" + "House: " + game.printHousePublicHand());
                 const playerEmbed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + '... Won?! I think they cheated.').setDescription("You just got super lucky with that 21. \nYou had: " + game.printPlayerHand() + "\nHouse had: " + game.printHouseHand());
                 gameState.splice(i, 1);
-                handlePayment(interaction.user.id, (game.wager * 1.05));
+                handlePayment(interaction.user.id, (game.wager * rate));
                 await interaction.reply({ embeds:[embed], ephemeral: true });
                 await interaction.followUp({ embeds:[playerEmbed], ephemeral: false });
             }else {
