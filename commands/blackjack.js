@@ -30,7 +30,12 @@ module.exports = {
             }
         }
 		game = new Game(interaction.user.id, interaction.options.get('amount').value);
-        var paid = await handlePayment(interaction.user.id, -Math.abs(interaction.options.get('amount').value));
+        if(-Math.abs(interaction.options.get('amount').value != 0)) {
+            var paid = await handlePayment(interaction.user.id, -Math.abs(interaction.options.get('amount').value));
+        }else {
+            var paid = true;
+        }
+        
         if(paid != true) {
             interaction.reply({content: "Welp... You are too broke to play based on the amount you entered.", ephemeral: true});
             return;
@@ -59,6 +64,7 @@ async function handlePayment(playerId, balance) {
         password:password,
         database:database
     });
+    var date = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
     return new Promise(function(resolve, reject){
         pool.query('INSERT IGNORE INTO `currency`(`id`) VALUES (?)', playerId);
@@ -69,13 +75,14 @@ async function handlePayment(playerId, balance) {
         var playerBalance = results[0].balance + balance;
         if(balance > 0){
             pool.query('UPDATE `currency` SET `balance` = ? WHERE id = ?', [playerBalance, playerId]);
-            pool.query('INSERT INTO transactions(`user_id`, `amount`) VALUES (?, ?)', [playerId, balance]);
+            pool.query('INSERT INTO transactions(`user_id`, `amount`, `date`) VALUES (?, ?, ?)', [playerId, balance, date]);
+            return true;
         }
         if(playerBalance < 0) {
             return false;
         }
         pool.query('UPDATE `currency` SET `balance` = ? WHERE id = ?', [playerBalance, playerId]);
-        pool.query('INSERT INTO transactions(`user_id`, `amount`) VALUES (?, ?)', [playerId, balance]);
+        pool.query('INSERT INTO transactions(`user_id`, `amount`, `date`) VALUES (?, ?, ?)', [playerId, balance, date]);
         return true;
     });
 }
