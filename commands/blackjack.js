@@ -66,7 +66,6 @@ async function handlePayment(playerId, balance) {
             resolve(results)
         });
     }).then(function(results){
-        console.log(results);
         var playerBalance = results[0].balance + balance;
         if(balance > 0){
             pool.query('UPDATE `currency` SET `balance` = ? WHERE id = ?', [playerBalance, playerId]);
