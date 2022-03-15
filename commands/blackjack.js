@@ -103,12 +103,11 @@ async function stand(interaction) {
                 const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' drew?').setDescription(interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
                 interaction.reply({ embeds:[ embed ] });
                 gameState.splice(i, 1);
-                handlePayment(interaction.user.id, (game.wager * 1.05));
+                handlePayment(interaction.user.id, game.wager);
                 return;
             }
             const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' lost... The house had more points.').setDescription(interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
             interaction.reply({ embeds:[ embed ] });
-            handlePayment(interaction.user.id, (game.wager * 1.05));
             gameState.splice(i, 1);
         }
     }
