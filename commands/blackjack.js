@@ -131,7 +131,6 @@ async function hit(interaction) {
             }else if(playerWeight == 21){
                 const embed = new MessageEmbed().setColor("#0099ff").setTitle('Blackjack').setDescription(interaction.user.username + ": " + game.printPlayerPublicHand() + "\n" + "House: " + game.printHousePublicHand());
                 const playerEmbed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + '... Won?! I think they cheated.').setDescription("You just got super lucky with that 21. \nYou had: " + game.printPlayerHand() + "\nHouse had: " + game.printHouseHand());
-                game.handlePayment(interaction.user.id, game.wager);
                 gameState.splice(i, 1);
                 handlePayment(interaction.user.id, (game.wager * 1.05));
                 await interaction.reply({ embeds:[embed], ephemeral: true });
