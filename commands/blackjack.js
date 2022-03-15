@@ -1,19 +1,40 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageActionRow, MessageButton, MessageEmbed, Client, Intents } = require('discord.js');
+const { MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
+const { username, password, database } = require('../config.json');
+var mysql = require('mysql');
 
 var gameState = new Array();
 
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('blackjack')
-		.setDescription('Test command'),
+		.setDescription('Play a game of blackjack.')
+        .addIntegerOption(option => 
+            option.setName('amount')
+            .setDescription('The amount you wish to put forward.')
+            .setRequired(true)),
 	async execute(interaction) {
+        if(interaction.options.get('amount').value > 500) {
+            interaction.reply({content: "Welp... That wager was too high. The maximum you can gamble is 500.", ephemeral: true});
+            return;
+        }
+
+        if(interaction.options.get('amount').value < 100 && interaction.options.get('amount').value != 0) {
+            interaction.reply({content: "Welp... That wager was too low. The minimum you can gamble is 100.", ephemeral: true});
+            return;
+        }
+
         for(var i = 0; i < gameState.length; i++) {
             if(gameState[i].playerId == interaction.user.id){
                 gameState.splice(i, 1);
             }
         }
-		game = new Game(interaction.user.id);
+		game = new Game(interaction.user.id, interaction.options.get('amount').value);
+        var paid = await handlePayment(interaction.user.id, -Math.abs(interaction.options.get('amount').value));
+        if(paid != true) {
+            interaction.reply({content: "Welp... You are too broke to play based on the amount you entered.", ephemeral: true});
+            return;
+        }
         
         const embed = new MessageEmbed().setColor("#0099ff").setTitle('Blackjack').setDescription(interaction.user.username + ": " + game.printPlayerPublicHand() + "\n" + "House: " + game.printHousePublicHand());
         const playerEmbed = new MessageEmbed().setColor("#0099ff").setTitle('Your hand').setDescription(game.printPlayerHand());
@@ -30,6 +51,36 @@ module.exports = {
 module.exports.hit = hit;
 module.exports.stand = stand;
 
+async function handlePayment(playerId, balance) {
+    var pool = mysql.createPool({
+        connectionLimit: 10,
+        host:'localhost',
+        user:username,
+        password:password,
+        database:database
+    });
+
+    return new Promise(function(resolve, reject){
+        pool.query('INSERT IGNORE INTO `currency`(`id`) VALUES (?)', playerId);
+        pool.query('SELECT * FROM `currency` WHERE id = ?', [playerId], function(error, results, fields) {
+            resolve(results)
+        });
+    }).then(function(results){
+        console.log(results);
+        var playerBalance = results[0].balance + balance;
+        if(balance > 0){
+            pool.query('UPDATE `currency` SET `balance` = ? WHERE id = ?', [playerBalance, playerId]);
+            pool.query('INSERT INTO transactions(`user_id`, `amount`) VALUES (?, ?)', [playerId, balance]);
+        }
+        if(playerBalance < 0) {
+            return false;
+        }
+        pool.query('UPDATE `currency` SET `balance` = ? WHERE id = ?', [playerBalance, playerId]);
+        pool.query('INSERT INTO transactions(`user_id`, `amount`) VALUES (?, ?)', [playerId, balance]);
+        return true;
+    });
+}
+
 async function stand(interaction) {
     for(var i = 0; i < gameState.length; i++) {
         if(gameState[i].playerId == interaction.user.id) {
@@ -39,22 +90,26 @@ async function stand(interaction) {
                 const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' won! House went bust.').setDescription(interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
                 interaction.reply({ embeds:[ embed ] });
                 gameState.splice(i, 1);
+                handlePayment(interaction.user.id, (game.wager * 1.05));
                 return;
             }
             if(calculateWeight(game.getPlayerHand()) > calculateWeight(game.getHouseHand())) {
                 const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' won! You had more points than house.').setDescription(interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
                 interaction.reply({ embeds:[ embed ] });
                 gameState.splice(i, 1);
+                handlePayment(interaction.user.id, (game.wager * 1.05));
                 return;
             }
-            if(calculateWeight(game.getPlayerHand()) == calculateWeight(game.getHouseHand)) {
+            if(calculateWeight(game.getPlayerHand()) == calculateWeight(game.getHouseHand())) {
                 const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' drew?').setDescription(interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
                 interaction.reply({ embeds:[ embed ] });
                 gameState.splice(i, 1);
+                handlePayment(interaction.user.id, (game.wager * 1.05));
                 return;
             }
             const embed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' lost... The house had more points.').setDescription(interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
             interaction.reply({ embeds:[ embed ] });
+            handlePayment(interaction.user.id, (game.wager * 1.05));
             gameState.splice(i, 1);
         }
     }
@@ -78,7 +133,9 @@ async function hit(interaction) {
             }else if(playerWeight == 21){
                 const embed = new MessageEmbed().setColor("#0099ff").setTitle('Blackjack').setDescription(interaction.user.username + ": " + game.printPlayerPublicHand() + "\n" + "House: " + game.printHousePublicHand());
                 const playerEmbed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + '... Won?! I think they cheated.').setDescription("You just got super lucky with that 21. \nYou had: " + game.printPlayerHand() + "\nHouse had: " + game.printHouseHand());
+                game.handlePayment(interaction.user.id, game.wager);
                 gameState.splice(i, 1);
+                handlePayment(interaction.user.id, (game.wager * 1.05));
                 await interaction.reply({ embeds:[embed], ephemeral: true });
                 await interaction.followUp({ embeds:[playerEmbed], ephemeral: false });
             }else {
@@ -168,8 +225,9 @@ class Card {
 }
 
 class Game {
-    constructor(player) {
+    constructor(player, wager) {
         this.playerId = player;
+        this.wager = wager;
         this.deck = new Deck();
         this.playerHand = new Array();
         this.houseHand = new Array();

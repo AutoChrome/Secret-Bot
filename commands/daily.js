@@ -1,7 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { username, password, database } = require('../config.json');
 var mysql = require('mysql');
-const PoolCluster = require('mysql/lib/PoolCluster');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -15,7 +14,6 @@ module.exports = {
             database:database
         });
         const d = new Date();
-        var giveDaily = false;
         connection.connect();
         connection.query('INSERT IGNORE INTO `currency`(`id`) VALUES (?)', [interaction.user.id]);
         connection.query('INSERT IGNORE INTO `daily`(`id`, `lastCheck`) VALUES (?, ?)', [interaction.user.id, d.getDate()-1]);
