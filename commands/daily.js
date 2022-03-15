@@ -40,6 +40,7 @@ module.exports = {
             
             pool.query('UPDATE `currency` SET `balance` = ? WHERE id = ?', [balance, interaction.user.id], function(error, users, fields){
                 pool.query('UPDATE `daily` SET lastCheck = ? where id = ?', [d.getDate(), interaction.user.id]);
+                pool.query('INSERT INTO transactions(`user_id`, `amount`) VALUES (?, ?)', [interaction.user.id, 100]);
                 interaction.reply("O- mate, we've stashed 100 bucks for ya.");
             });
         });
