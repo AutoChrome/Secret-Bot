@@ -145,7 +145,7 @@ async function hit(interaction) {
                 await interaction.followUp({ embeds:[playerEmbed], ephemeral: false });
             }else {
                 const embed = new MessageEmbed().setColor("#0099ff").setTitle('Blackjack').setDescription(interaction.user.username + ": " + game.printPlayerPublicHand() + "\n" + "House: " + game.printHousePublicHand());
-                const playerEmbed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' lost. What a loser.').setDescription("You went bust... Imagine being that bad. \nYou had: " + game.printPlayerHand() + "\nHouse had: " + game.printHouseHand());
+                const playerEmbed = new MessageEmbed().setColor("#0099ff").setTitle(interaction.user.username + ' lost. What a loser.').setDescription("You lose: " + game.wager + " hidden bucks \n" + interaction.user.username + ": " + game.printPlayerHand() + "\n" + "House: " + game.printHouseHand());
                 gameState.splice(i, 1);
                 await interaction.reply({ embeds:[embed], ephemeral: true });
                 await interaction.followUp({ embeds:[playerEmbed], ephemeral: false });
