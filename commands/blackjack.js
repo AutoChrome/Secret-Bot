@@ -31,11 +31,7 @@ module.exports = {
             }
         }
 		game = new Game(interaction.user.id, interaction.options.get('amount').value);
-        if(interaction.options.get('amount').value != 0) {
-            var paid = await handlePayment(interaction.user.id, -Math.abs(interaction.options.get('amount').value));
-        }else {
-            var paid = true;
-        }
+        var paid = await handlePayment(interaction.user.id, -Math.abs(interaction.options.get('amount').value));
         
         if(paid != true) {
             interaction.reply({content: "Welp... You are too broke to play based on the amount you entered.", ephemeral: true});
@@ -65,6 +61,9 @@ async function handlePayment(playerId, balance) {
         password:password,
         database:database
     });
+    if(balance == 0){
+        return true;
+    }
     var date = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
     return new Promise(function(resolve, reject){
