@@ -2,7 +2,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
 const { username, password, database } = require('../config.json');
 var mysql = require('mysql');
-var rate = 1.05;
+var rate = 1.25;
 
 var gameState = new Array();
 
