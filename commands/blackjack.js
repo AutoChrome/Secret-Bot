@@ -31,7 +31,7 @@ module.exports = {
             }
         }
 		game = new Game(interaction.user.id, interaction.options.get('amount').value);
-        if(-Math.abs(interaction.options.get('amount').value != 0)) {
+        if(interaction.options.get('amount').value != 0) {
             var paid = await handlePayment(interaction.user.id, -Math.abs(interaction.options.get('amount').value));
         }else {
             var paid = true;
