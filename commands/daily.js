@@ -37,10 +37,12 @@ module.exports = {
             }else{
                 balance = results[0].balance + 100;
             }
+
+            var date = new Date().toISOString().slice(0, 19).replace('T', ' ');
             
             pool.query('UPDATE `currency` SET `balance` = ? WHERE id = ?', [balance, interaction.user.id], function(error, users, fields){
                 pool.query('UPDATE `daily` SET lastCheck = ? where id = ?', [d.getDate(), interaction.user.id]);
-                pool.query('INSERT INTO transactions(`user_id`, `amount`) VALUES (?, ?)', [interaction.user.id, 100]);
+                pool.query('INSERT INTO transactions(`user_id`, `amount`, `date`, `source`) VALUES (?, ?, ?, ?)', [interaction.user.id, 100, date, "daily"]);
                 interaction.reply("O- mate, we've stashed 100 bucks for ya.");
             });
         });
