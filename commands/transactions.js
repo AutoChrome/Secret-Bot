@@ -26,11 +26,10 @@ module.exports = {
             for(var i = results.length; i != 0; i--) {
                 var transaction = results[i - 1];
                 var date = new Date(transaction.date);
-                var dateString = date.getFullYear() + "/" + date.getMonth() + "/" + date.getDay();
                 var amount = String(transaction.amount);
                 var repeat = 0;
                 repeat += transaction.source.length;
-                description += "**" + transaction.source + "**" + ".".repeat(30 - repeat) + amount + " " + dateString + "\n";
+                description += "**" + transaction.source + "**" + ".".repeat(30 - repeat) + amount + " " + date.getDate() + "\n";
                 embeds.addField("**" + transaction.source.charAt(0).toUpperCase() + transaction.source.slice(1) + "**", "Amount: " + amount + "\n Date: " + dateString, false);
             }
             interaction.reply({ embeds: [embeds], ephemeral: false });
