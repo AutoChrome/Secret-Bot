@@ -31,7 +31,7 @@ module.exports = {
                 var repeat = 0;
                 repeat += transaction.source.length;
                 description += "**" + transaction.source + "**" + ".".repeat(30 - repeat) + amount + " " + dateString + "\n";
-                embeds.addField("**" + transaction.source.charAt(0).toUpperCase() + transaction.source.slice(1) + "**", "Amount: " + amount, false);
+                embeds.addField("**" + transaction.source.charAt(0).toUpperCase() + transaction.source.slice(1) + "**", "Amount: " + amount + "\n Date: " + dateString, false);
             }
             interaction.reply({ embeds: [embeds], ephemeral: false });
         });
