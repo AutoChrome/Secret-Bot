@@ -5,7 +5,8 @@ const { token, clientId, guildId, username, password, database } = require('./co
 var mysql = require('mysql');
 const { REST } = require('@discordjs/rest');
 const rest = new REST({ version: '10' }).setToken(token);
-const client = new Client({intents: [Intents.FLAGS.GUILDS]});
+const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES]});
+module.exports = client;
 client.commands = new Collection();
 const commands = [];
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
@@ -35,6 +36,18 @@ client.on('interactionCreate', async interaction => {
         }else if(interaction.customId == "stand") {
             var game = require('./commands/blackjack.js');
             game.stand(interaction);
+        }else if(interaction.customId == "liarAccept") {
+            var game = require('./commands/liar.js');
+            var checkGame = game.acceptChallenge(interaction);
+            if(checkGame) {
+                game.turn();
+            }
+        }else if(interaction.customId == "liarReject") {
+            var game = require('./commands/liar.js');
+            game.rejectChallenge(interaction);
+        }else if(interaction.customId == "liarDice") {
+            var game = require('./commands/liar.js');
+            game.showDice(interaction);
         }
     }else {
         const command = client.commands.get(interaction.commandName);
