@@ -19,7 +19,6 @@ module.exports = {
         connection.query('INSERT IGNORE INTO `currency`(`id`) VALUES (?)', [interaction.user.id]);
 
         connection.query('SELECT * FROM `transactions` WHERE `user_id` = ? ORDER BY date DESC LIMIT 5', [interaction.user.id], function(error, results, fields){
-            var description = 'Source\n';
             var embeds = new MessageEmbed();
             embeds.setColor(getRandomColor());
             embeds.setTitle('Transactions');
@@ -29,8 +28,7 @@ module.exports = {
                 var amount = String(transaction.amount);
                 var repeat = 0;
                 repeat += transaction.source.length;
-                description += "**" + transaction.source + "**" + ".".repeat(30 - repeat) + amount + " " + date.getDate() + "\n";
-                embeds.addField("**" + transaction.source.charAt(0).toUpperCase() + transaction.source.slice(1) + "**", "Amount: " + amount + "\n Date: " + dateString, false);
+                embeds.addField("**" + transaction.source.charAt(0).toUpperCase() + transaction.source.slice(1) + "**", "Amount: " + amount + "\n Date: " + date.getDate(), false);
             }
             interaction.reply({ embeds: [embeds], ephemeral: false });
         });
