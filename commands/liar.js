@@ -3,7 +3,6 @@ const { username, password, database } = require('../config.json');
 var mysql = require('mysql');
 const client = require('../index.js');
 const { MessageActionRow, MessageButton } = require('discord.js');
-const { prependOnceListener } = require('../index.js');
 
 var gameState;
 var timeOut = 60;
@@ -35,7 +34,7 @@ module.exports = {
             interaction.reply({ content:'You cannot challenge yourself to this game.', ephemeral: true });
             return;
         }
-        
+       
         if(user.bot == true){
             interaction.reply({ content:'You cannot challenge a bot to this game.', ephemeral: true });
             return;
@@ -87,6 +86,9 @@ module.exports = {
             );
             interaction.reply({content: "Accept?", components:[row]});
             setTimeout(function(){
+                if(gameState == undefined){
+                    return;
+                }
                 if(gameState.gameStarted == false) {
                     var ids = [];
                     for(var i = 0; i < gameState.players.length; i++) {
@@ -151,12 +153,22 @@ class Game {
      */
     newRound(){
         if(gameState.round == 3) {
+            var playerStats = ``;
+            var playerIds = [];
             for(var i = 0; i < gameState.players.length; i++) {
                 if(((gameState.players[i].wins / 3) * 100) > 50){
                     var winner = gameState.players[i];
                 }
+                playerStats += `<@${gameState.players[i].id}> won: ${gameState.players[i].wins} rounds. \n`;
+                playerIds.push(gameState.players[i].id);
             }
-            gameState.channel.send({content:`Game has ended! The winner is: <@${winner.id}>`});
+            if(winner == undefined) {
+                handlePayment(playerIds, gameState.wager, "liar");
+                gameState.channel.send({content:`Game has ended! It was a draw. Refuned all players their wager.`});
+            }else {
+                handlePayment([winner.id], (gameState.wager * gameState.players.length), "liar");
+                gameState.channel.send({content:`Game has ended! The winner is: <@${winner.id}> \n ${playerStats}`});
+            }
             gameState = undefined;
             return;
         }
@@ -204,8 +216,10 @@ async function handlePayment(players, wager, reason = "liar") {
 
     var query = 'SELECT * FROM `currency` WHERE id = ?';
 
-    for(var i = 1; i < players.length; i++) {
-        query += " OR id = ?";
+    if(players.length > 1) {
+        for(var i = 1; i < players.length; i++) {
+            query += " OR id = ?";
+        }
     }
 
     return new Promise(function(resolve, reject){
@@ -234,7 +248,7 @@ function turn() {
     const row = new MessageActionRow().addComponents(
         new MessageButton().setCustomId("liarDice").setLabel("Show Dice").setStyle("PRIMARY"),
     );
-    gameState.channel.send({content:`Round: ${gameState.round}/3. It's now <@${gameState.turn}>'s turn. Either user the command !wager <Amount> <Face> or !liar to call the user a liar! \n Current wager: Amount: ${gameState.lastWager.amount} Face: ${gameState.lastWager.face}`, components:[row]});
+    gameState.channel.send({content:`Round: ${gameState.round}/3. It's now <@${gameState.turn}>'s turn. Either use the command !wager <Amount> <Face> or !liar to call the user a liar! \n Current wager: Amount: ${gameState.lastWager.amount} Face: ${gameState.lastWager.face}`, components:[row]});
     const filter = m => m.content.includes('!wager') || m.content.includes('!liar');
     const collector = gameState.channel.createMessageCollector({ filter, time: 60000 });
 
