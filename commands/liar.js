@@ -166,8 +166,9 @@ class Game {
                 handlePayment(playerIds, gameState.wager, "liar");
                 gameState.channel.send({content:`Game has ended! It was a draw. Refuned all players their wager.`});
             }else {
+                var pay = gameState.wager * gameState.players.length;
                 handlePayment([winner.id], (gameState.wager * gameState.players.length), "liar");
-                gameState.channel.send({content:`Game has ended! The winner is: <@${winner.id}> \n ${playerStats}`});
+                gameState.channel.send({content:`Game has ended! The winner is: <@${winner.id}>. Payout: ${pay} \n ${playerStats}`});
             }
             gameState = undefined;
             return;
