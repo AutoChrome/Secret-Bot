@@ -53,7 +53,10 @@ module.exports = {
 module.exports.hit = hit;
 module.exports.stand = stand;
 
-async function handlePayment(playerId, balance, source = "blackjack") {
+async function handlePayment(playerId, wager, source = "blackjack") {
+    if(wager == 0){
+        return true;
+    }
     var pool = mysql.createPool({
         connectionLimit: 10,
         host:'localhost',
@@ -61,9 +64,7 @@ async function handlePayment(playerId, balance, source = "blackjack") {
         password:password,
         database:database
     });
-    if(balance == 0){
-        return true;
-    }
+
     var date = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
     return new Promise(function(resolve, reject){
@@ -72,17 +73,12 @@ async function handlePayment(playerId, balance, source = "blackjack") {
             resolve(results)
         });
     }).then(function(results){
-        var playerBalance = results[0].balance + balance;
-        if(balance > 0){
-            pool.query('UPDATE `currency` SET `balance` = ? WHERE id = ?', [playerBalance, playerId]);
-            pool.query('INSERT INTO transactions(`user_id`, `amount`, `date`, `source`) VALUES (?, ?, ?, ?)', [playerId, balance, date, source]);
-            return true;
-        }
+        var playerBalance = results[0].balance + wager;
         if(playerBalance < 0) {
             return false;
         }
         pool.query('UPDATE `currency` SET `balance` = ? WHERE id = ?', [playerBalance, playerId]);
-        pool.query('INSERT INTO transactions(`user_id`, `amount`, `date`, `source`) VALUES (?, ?, ?, ?)', [playerId, balance, date, source]);
+        pool.query('INSERT INTO transactions(`user_id`, `amount`, `date`, `source`) VALUES (?, ?, ?, ?)', [playerId, wager, date, source]);
         return true;
     });
 }
