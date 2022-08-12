@@ -4,5 +4,7 @@
 	"token": "",
 	"username":"",
 	"password":"",
-	"database":""
+	"database":"",
+	"host":"",
+	"port":""
 }
